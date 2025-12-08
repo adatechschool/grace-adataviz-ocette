@@ -2,6 +2,7 @@ import "./style.css";
 
 //https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/femmes-illustres-a-paris-portraits/records?limit=20
 
+// Fonction principale
 async function fetchApi() {
   try {
     const response = await fetch(
@@ -13,23 +14,28 @@ async function fetchApi() {
 
     const div = document.getElementById("app");
 
-    // Conteneur de la barre de recherche
+    /* ------------------------------
+            Barre de recherche
+    ------------------------------ */
     const searchContainer = document.createElement("div");
     searchContainer.className = "search-container";
-    div.appendChild(searchContainer);
 
-    // Création de la barre de recherche
+    const wrapper = document.createElement("div");
+    wrapper.className = "search-wrapper";
+
+    const icon = document.createElement("span");
+    icon.className = "icon";
+    icon.textContent = "🔍";
+
     const searchInput = document.createElement("input");
     searchInput.type = "search";
     searchInput.placeholder = "Rechercher un nom";
     searchInput.id = "searchBar";
-    searchInput.ariaLabel = "Rechercher un nom parmi le contenu du site.";
-    searchContainer.appendChild(searchInput);
 
-    // Bouton barre de recherche
-    const searchBtn = document.createElement("button");
-    searchBtn.textContent = "Rechercher";
-    searchContainer.appendChild(searchBtn);
+    wrapper.appendChild(icon);
+    wrapper.appendChild(searchInput);
+    searchContainer.appendChild(wrapper);
+    div.appendChild(searchContainer);
 
     // Ajoute un espace après les points si nécessaire
     function cleanText(str) {
@@ -37,50 +43,66 @@ async function fetchApi() {
       return str.replace(/\.([^\s])/g, ". $1").trim();
     }
 
-    for (let i = 0; i < data.results.length; i++) {
-      const liste = document.createElement("li");
-      // Nettoyage et assemblage du texte supplémentaire
+    /* ------------------------------
+              Liste de cards
+    ------------------------------ */
+
+    const listContainer = document.createElement("ul");
+    div.appendChild(listContainer);
+
+    /* Bouton "charger plus" */
+    const loadMoreBtn = document.createElement("button");
+    loadMoreBtn.textContent = "Charger plus";
+    loadMoreBtn.className = "load-more";
+    div.appendChild(loadMoreBtn);
+
+    data.results.forEach((item) => {
+      const desc1 = cleanText(item.desc1);
       const extraText = [
-        cleanText(data.results[i].desc2),
-        cleanText(data.results[i].desc3),
-        cleanText(data.results[i].desc4),
+        cleanText(item.desc2),
+        cleanText(item.desc3),
+        cleanText(item.desc4),
+        cleanText(item.desc5),
       ]
-        .filter((t) => t.length > 0) // retire les vides
-        .join(" "); // espace entre chaque bloc
+        .filter((t) => t)
+        .join(" ");
 
-      liste.innerHTML = `
-      <img class="portrait" src="${data.results[i].thumb_url}" />
-      <h2>${data.results[i].name}</h2>
-      <p>${data.results[i].desc1}</p>
-      `;
+      const li = document.createElement("li");
 
-      // Si du texte additionnel existe, on l’ajoute
+      li.innerHTML = `
+        <img class="portrait" src="${item.thumb_url}" />
+        <h2>${item.name}</h2>
+        <p>${desc1}</p>
+        `;
+
       if (extraText.length > 0) {
         const extraSpan = document.createElement("span");
         extraSpan.className = "more hidden";
-        extraSpan.textContent = extraText;
+        extraSpan.textContent = " " + extraText;
 
-        const paragraph = liste.querySelector("p");
-        paragraph.appendChild(extraSpan);
+        li.querySelector("p").appendChild(extraSpan);
 
-        // Ajouter le bouton "Voir plus"
         const btn = document.createElement("button");
         btn.textContent = "Voir plus";
-        liste.appendChild(btn);
 
         btn.addEventListener("click", () => {
-          if (extraSpan.classList.contains("hidden")) {
-            extraSpan.classList.remove("hidden");
-            btn.textContent = "Voir moins";
-          } else {
-            extraSpan.classList.add("hidden");
-            btn.textContent = "Voir plus";
-          }
+          const hidden = extraSpan.classList.toggle("hidden");
+          btn.textContent = hidden ? "Voir plus" : "Voir moins";
         });
+        li.appendChild(btn);
       }
+      listContainer.appendChild(li);
+    });
 
-      div.appendChild(liste);
-    }
+    searchInput.addEventListener("input", () => {
+      const searchValue = searchInput.value.toLowerCase();
+      const items = listContainer.querySelectorAll("li");
+
+      items.forEach((item) => {
+        const name = item.querySelector("h2").textContent.toLowerCase();
+        item.style.display = name.includes(searchValue) ? "block" : "none";
+      });
+    });
   } catch (error) {
     console.log(error);
   }
